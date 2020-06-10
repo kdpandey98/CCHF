@@ -316,10 +316,23 @@ for ii = 1 : numel(namesObs)
         %Identify fields that currently exist and others that must be
         %created:
         if ~isempty(output)
-            %Find fields present in both obs and output:
-            [fieldOutCurr, ~, indOut] = intersect(fieldObsCurr, output(:,1));
-            %Find fields present in obs but not present in output:
-            [fieldNotOutCurr, ~] = setdiff(fieldObsCurr, output(:,1));
+            if iscell(output) && ~isempty(output(:))
+                if iscell(output(:,1)) && numel(output(:,1)) <= 1
+                    output(:,1) = output{:,1};
+%                 else
+%                     error('outputAllGage:outputTypeUnknown',['The output array is type ' ...
+%                         class(output(:,1)) ', which has not been programmed for.']);
+                end
+                
+                %Find fields present in both obs and output:
+                [fieldOutCurr, ~, indOut] = intersect(fieldObsCurr, output(:,1));
+                %Find fields present in obs but not present in output:
+                [fieldNotOutCurr, ~] = setdiff(fieldObsCurr, output(:,1));
+            else
+                fieldOutCurr = '';
+                fieldNotOutCurr = {fieldObsCurr};
+                output = cell(0,2);
+            end
         else
             fieldOutCurr = '';
             fieldNotOutCurr = {fieldObsCurr};
@@ -333,7 +346,7 @@ for ii = 1 : numel(namesObs)
             for kk = 1 : numel(fieldNotOutCurr)
                 if isnumeric(lonCurr) && isnumeric(latCurr)
                     output(end+1,1:2) = {char(fieldNotOutCurr{kk}), [lonCurr, latCurr]};
-                elseif strcmpi(lonCurr,'avg') || strcmpi(lonCurr,'all')
+                elseif strcmpi(lonCurr,'avg') || strcmpi(lonCurr,'all') || strcmpi(lonCurr,'writegrid') || strcmpi(lonCurr,'annualgrid') 
                     output(end+1,1:2) = {fieldNotOutCurr{kk}, {lonCurr}};
                 end
             end
@@ -356,6 +369,10 @@ for ii = 1 : numel(namesObs)
                         output{indOut(kk),2} = [output{indOut(kk),2}; {'avg'}];
                     elseif strcmpi(lonCurr,'all')
                         output{indOut(kk),2} = [output{indOut(kk),2}; {'all'}];
+%                     elseif strcmpi(lonCurr,'writegrid')
+%                         output{indOut(kk),2} = [output{indOut(kk),2}; {'writegrid'}];
+%                     elseif strcmpi(lonCurr, 'annualgrid')
+%                         output{indOut(kk),2} = [output{indOut(kk),2}; {'annualgrid'}];
                     end
                elseif ischar(output{indOut(kk),2})
                     if isnumeric(lonCurr) && isnumeric(latCurr)
@@ -364,6 +381,10 @@ for ii = 1 : numel(namesObs)
                         output{indOut(kk),2} = {output{indOut(kk),2}; 'avg'};
                     elseif strcmpi(lonCurr,'all')
                         output{indOut(kk),2} = [output{indOut(kk),2}; {'all'}];
+%                     elseif strcmpi(lonCurr,'writegrid')
+%                         output{indOut(kk),2} = [output{indOut(kk),2}; {'writegrid'}];
+%                     elseif strcmpi(lonCurr,'annualgrid')
+%                         output{indOut(kk),2} = [output{indOut(kk),2}; {'annualgrid'}];
                     end
                elseif iscell(output{indOut(kk),2})
                     if isnumeric(lonCurr) && isnumeric(latCurr)
@@ -372,6 +393,10 @@ for ii = 1 : numel(namesObs)
                         sameCrd = cellfun(@(x) any(strcmpi('avg', x)), output{indOut(kk),2});
                     elseif strcmpi(lonCurr,'all')
                         sameCrd = cellfun(@(x) any(strcmpi('all', x)), output{indOut(kk),2});
+%                     elseif strcmpi(lonCurr,'writegrid')
+%                         sameCrd = cellfun(@(x) any(strcmpi('writegrid', x)), output{indOut(kk),2});
+%                     elseif strcmpi(lonCurr,'annualgrid')
+%                         sameCrd = cellfun(@(x) any(strcmpi('annualgrid', x)), output{indOut(kk),2});
                     end
 
                    %Check if point already exists in array:
@@ -382,6 +407,10 @@ for ii = 1 : numel(namesObs)
                             output{indOut(kk),2} = [output{indOut(kk),2}; 'avg'];
                         elseif strcmpi(lonCurr,'all')
                             output{indOut(kk),2} = [output{indOut(kk),2}; 'all'];
+%                         elseif strcmpi(lonCurr,'writegrid')
+%                             output{indOut(kk),2} = [output{indOut(kk),2}; 'writegrid'];
+%                         elseif strcmpi(lonCurr,'annualgrid')
+%                             output{indOut(kk),2} = [output{indOut(kk),2}; 'annualgrid'];
                         else
                             error('output_all_gage:unknownCrdMarker', ...
                                 ['The longitude marker ' lonCurr ' is not known.']);
@@ -392,8 +421,6 @@ for ii = 1 : numel(namesObs)
         end
     end
 end 
-
-
 
 
 
@@ -420,13 +447,17 @@ for ii = 1 : numel(output(:,1))
                     output{ii,3}{jj} = 'avg';
                 elseif strcmpi(output{ii,2}{jj},{'all'})
                     output{ii,3}{jj} = 'all';
+                elseif strcmpi(output{ii,2}{jj},{'writegrid'})
+                    output{ii,3}{jj} = 'writegrid';
+                elseif strcmpi(output{ii,2}{jj},{'annualgrid'})
+                    output{ii,3}{jj} = 'annualgrid';
                 end
             end
         end
     elseif isnumeric(output{ii,2})
         output{ii, 3} = cell(numel(output{ii,2}(:,1)),1);
 
-        for jj = 1: numel(output{ii,2}(:,1))
+        for jj = 1 : numel(output{ii,2}(:,1))
             [~, gageRow] = min(abs(output{ii,2}(jj,2)-lat));
             [~, gageCol] = min(abs(output{ii,2}(jj,1)-lon));
             if output{ii,2}(jj,2) > lat(1) + 0.5*abs(diff(lat(1:2))) || output{ii,2}(jj,2) < lat(end) - 0.5*abs(diff(lat(end-1:end))) 
@@ -435,13 +466,17 @@ for ii = 1 : numel(output(:,1))
                 warning('SETI_backbone:gagePtCol','The longitude of the gauge point may be outside the area being modeled.');
             end
 
-            output{ii,3}{jj} = round(sub2ind(szModel, gageRow, gageCol));
+            output{ii,3}{jj} = ['pt' num2str(round(sub2ind(szModel, gageRow, gageCol)))];
         end
     elseif ischar(output{ii,2})
         if regexpbl(output{ii,2},{'avg','mean'})
             output{ii,3}{1} = 'avg';
         elseif strcmpi(output{ii,2},{'all'})
             output{ii,3}{1} = 'all';
+        elseif strcmpi(output{ii,2},{'writegrid'})
+            output{ii,3}{1} = 'writegrid';
+        elseif strcmpi(output{ii,2},{'annualgrid'})
+            output{ii,3}{1} = 'annualgrid';
         end
     else
         error('output_all_gage:unknownOutputType','Unknown type');
