@@ -193,6 +193,13 @@ if ~isempty(dateCurr) && ~all(isnan(dateCurr))
                     sDataCurr.attData = squeeze(struct2cell(sDataCurr.attData.Attributes))';
                 %Assign data field from NetyCDF file
                 sDataCurr.data = single(ncread(pathCurr,varRead));
+                
+                %Bug fix for specific case where leap day written
+                %incorrectly:
+                if numel(sDataCurr.time) == 29 && all(diff(sDataCurr.time(1:28)) == 1) && diff(sDataCurr.time(28:29)) > 10000
+                    %nYrs = nYrs (same as last value)
+                    sDataCurr.time(29) = sDataCurr.time(28)+1;
+                end
             elseif regexpbl(pathCurr, {'.txt','.asc'})
                 sDataCurr.(varLon) = sHydro.(varLon);
                 sDataCurr.(varLat) = sHydro.(varLat);
@@ -340,7 +347,7 @@ if ~isempty(dateCurr) && ~all(isnan(dateCurr))
                    error('month_load:preUnits',['The precipitation units are ' units ', which have not been coded for.']) 
                 end    
             elseif isfield(sDataCurr,'var') && regexpbl(sDataCurr.var,{'tmp','temp','tmean','tas','tmn','tmin','tasmin','tmx','tmax','tasmax'}) 
-                if regexpbl(units,'kelvin')
+                if regexpbl(units,'kelvin') || strcmpi(units, 'K')
                     sDataCurr.data = sDataCurr.data - 273.15;
                     sDataCurr.attData{rowUnit, 2} = 'Celsius';
                 elseif ~regexpbl(units,'celsius')
